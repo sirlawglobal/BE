@@ -83,8 +83,17 @@ export class AuthService {
     // Delete all OTPs for this email after successful verification
     await this.otpRepo.delete({ email });
 
+    const payload: JwtPayload = { id: user.id, sub: user.id, email: user.email, role: user.role };
+
     return {
-      message: 'Email successfully verified. You can now log in.',
+      accessToken: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      }
     };
   }
 
