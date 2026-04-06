@@ -1,0 +1,303 @@
+# 🎓 TrueMinds TalentFlow LMS - Backend
+
+Welcome to the backend of the **TrueMinds TalentFlow LMS**, a robust and scalable learning management system built with the modern web stack. This repository provides a solid foundation for building a production-ready educational platform.
+
+---
+
+### 🌐 Live Hosting
+The API is currently live and accessible at:
+👉 **[https://backend-lms-0kw1.onrender.com/api/v1](https://backend-lms-0kw1.onrender.com/api/v1)**
+
+---
+
+---
+
+## 🛠 Tech Stack
+
+The project leverages industry-standard technologies to ensure high performance, security, and developer productivity:
+
+| Category | Technology |
+| :--- | :--- |
+| **Framework** | [NestJS](https://nestjs.com/) (v11+) |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) |
+| **Database** | [MySQL](https://www.mysql.com/) (v8.0) |
+| **ORM** | [TypeORM](https://typeorm.io/) |
+| **Auth** | [JWT](https://jwt.io/) & [Passport](https://www.passportjs.org/) |
+| **Security** | Bcrypt (Password Hashing), RBAC (Role-Based Access Control) |
+| **Media Hosting** | [Cloudinary](https://cloudinary.com/) (Video & Image Hosting) |
+| **API Docs** | [Swagger / OpenAPI 3.0](https://swagger.io/) |
+
+| **Infrastucture** | [Docker](https://www.docker.com/) |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js**: v18 or higher (v22 recommended)
+- **Database**: MySQL 8.0 or Docker Compose
+- **Package Manager**: npm
+
+### Step 1: Environment Setup
+
+Copy the example environment file and configure your local settings:
+
+```bash
+cp .env.example .env
+```
+
+> [!IMPORTANT]
+> Make sure to open your new `.env` file and fill in your:
+> 1. **SMTP Mail** credentials (e.g., a Gmail App Password) so that the system can deliver OTP verification emails.
+> 2. **Cloudinary** credentials (`CLOUD_NAME`, `API_KEY`, `API_SECRET`) to enable video and media uploads.
+
+
+### Step 2: Launch Infrastructure (Docker)
+
+To spin up the MySQL database quickly:
+
+```bash
+docker compose up -d
+```
+
+### Step 3: Run the Application
+
+```bash
+# Install dependencies
+npm install
+
+# Start in development mode (watch mode)
+npm run start:dev
+
+# Build for production
+npm run build
+npm run start:prod
+```
+
+---
+
+## 📖 API Documentation
+
+The backend is fully documented and testable out of the box.
+
+### 1. Swagger UI
+Interactive documentation is available at:
+👉 Local: **[http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs)**
+👉 Live: **[https://backend-lms-0kw1.onrender.com/api/v1/docs](https://backend-lms-0kw1.onrender.com/api/v1/docs)**
+
+### 2. Postman Collection
+For dedicated API testing, import the collection found in:
+📁 `docs/postman/TalentFlow_LMS.postman_collection.json`
+
+> [!TIP]
+> Registration now requires email verification. The expected flow is: **Register -> Verify OTP -> Login**.
+> The Postman collection automatically handles JWT storage! Just run the **Login** request after verifying your email, and all subsequent authenticated calls will use the captured token.
+
+### 3. Endpoints Overview
+
+#### Auth Endpoints (`/api/v1/auth`)
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| POST | `/register` | Register a new user (Student/Instructor) | No |
+| POST | `/verify-otp` | Verify account via email OTP | No |
+| POST | `/resend-otp` | Resend verification OTP | No |
+| POST | `/login` | Authenticate and receive JWT | No |
+| GET | `/me` | Get current user's security profile | Yes |
+
+#### User Management (`/api/v1/users`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/` | List all users (Paginated) | Yes | Admin |
+| GET | `/me` | Get profile details of logged-in user | Yes | Any |
+| PATCH | `/me` | Update profile information | Yes | Any |
+| PATCH | `/me/password` | Change account password | Yes | Any |
+| GET | `/:id` | Get details of a specific user | Yes | Admin |
+| PATCH | `/:id/role` | Change user's role | Yes | Admin |
+| PATCH | `/:id/deactivate`| Disable a user's account | Yes | Admin |
+| PATCH | `/:id/activate` | Enable a user's account | Yes | Admin |
+
+#### Media & Video Uploads (`/api/v1/media`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/upload/video` | Upload a video file to Cloudinary | Yes | Instructor, Admin |
+
+#### Courses Management (`/api/v1/courses`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/` | Create a new course | Yes | Instructor, Admin |
+| GET | `/` | List all published courses (Paginated) | No | Any |
+| GET | `/:id` | Get course details | No | Any |
+| PATCH | `/:id` | Update course details | Yes | Instructor, Admin |
+| DELETE | `/:id` | Remove a course | Yes | Instructor, Admin |
+| POST | `/:id/modules` | Add a module to a course | Yes | Instructor, Admin |
+| GET | `/:id/modules` | Get modules for a course | Yes | Any |
+
+#### Lessons Management (`/api/v1/lessons`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/?moduleId=...` | Create a lesson in a module | Yes | Instructor, Admin |
+| GET | `/:id` | Get lesson content | Yes | Any |
+| PATCH | `/:id` | Update lesson details | Yes | Instructor, Admin |
+| DELETE | `/:id` | Remove a lesson | Yes | Instructor, Admin |
+
+#### Enrollments & Progress (`/api/v1`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/courses/:id/enroll` | Enroll in a course | Yes | Student |
+| GET | `/users/me/enrollments` | Get my enrolled courses & progress| Yes | Student |
+| POST | `/lessons/:id/complete`| Mark a lesson as completed | Yes | Student |
+
+#### Dashboard & Analytics (`/api/v1/dashboard`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/` | Get role-based dashboard statistics | Yes | Any |
+
+---
+
+## 🔍 Database Management
+
+To view and manage the underlying MySQL database in your browser:
+1. Ensure the Docker containers are running: `docker compose up -d`.
+2. Open your browser and navigate to: **[http://localhost:8080](http://localhost:8080)**.
+3. Use the following credentials to log in to **phpMyAdmin**:
+   - **Server**: `mysql`
+   - **Username**: `root`
+   - **Password**: `password` (matching the `MYSQL_ROOT_PASSWORD` in your config).
+
+---
+
+## 👑 Admin Seeding
+
+For security reasons, the public registration endpoint (`/api/v1/auth/register`) only allows for **Student** or **Instructor** roles. To create an initial **Admin** user:
+
+1. Ensure your database is running.
+2. Run the pre-configured seeding script:
+   ```bash
+   npm run seed:admin
+   ```
+   *Note: This script will create a default admin with the email `admin@trueminds.io` and password `superadmin123` if it doesn't already exist.*
+
+---
+
+## 📂 Folder Structure
+
+The project follows a modular architecture for high maintainability:
+
+```text
+src/
+├── app.module.ts          # Root module
+├── main.ts                # Entry point & Swagger configuration
+├── auth/                  # Authentication, JWT, and Guards
+│   ├── decorators/        # Custom decorators (e.g., @Roles, @CurrentUser)
+│   ├── dto/               # Auth-related DTOs
+│   ├── guards/            # JWT and Role-based guards
+│   └── ...
+├── cloudinary/            # Cloudinary SDK provider and upload service
+├── media/                 # Media controller for file upload endpoints
+├── common/                # Shared utilities, filters, and pipes
+
+│   └── enums/             # Global enums (e.g., UserRole)
+├── users/                 # Core User management module
+│   ├── entities/          # TypeORM Entity definitions
+│   ├── dto/               # User-related DTOs
+│   └── ...
+├── courses/               # Course & Module management
+├── lessons/               # Lesson content management
+├── enrollments/           # Student enrollment & progress tracking
+├── notifications/         # Email & OTP notification system
+├── outbox/                # Transactional outbox for guaranteed delivery
+└── dashboard/             # Role-based analytics module
+    ├── dashboard.controller.ts
+    ├── dashboard.service.ts
+    └── dashboard.module.ts
+```
+
+---
+
+## ✉️ Notifications & OTP System
+
+The platform includes a robust **One-Time Password (OTP)** verification flow and an asynchronous notification system.
+
+- **Verified Users Only**: New users cannot log in until they verify their email via the `/api/v1/auth/verify-otp` endpoint.
+- **Transactional Outbox Pattern**: To guarantee email delivery, OTP emails are not sent synchronously during the registration request. Instead, they are safely written to the `outbox` database table within the same **database transaction** as the user creation.
+- **Background Worker**: A scheduled background cron job (`@nestjs/schedule`) continuously scans the outbox and delivers pending emails using NodeMailer, complete with automatic retries for failed deliveries.
+
+---
+
+## 🎥 Video & Media Uploads
+
+The platform supports high-performance video uploads powered by **Cloudinary**.
+
+- **Stateless Streaming**: To avoid taxing the server's disk space, video files are streamed directly from the incoming request buffer to Cloudinary using `streamifier`.
+- **Validation**:
+  - Max File Size: **100MB**.
+  - Allowed Formats: `.mp4`, `.mkv`, `.avi`.
+- **Usage**: Upon a successful upload to `/api/v1/media/upload/video`, the API returns a secure HTTPS URL. This URL can then be saved as the `contentUrl` for a Lesson in the Courses module.
+
+
+---
+
+## 🔐 Security Highlights
+
+- **Bcrypt Hashing**: All passwords are salted and hashed using Bcrypt before being stored.
+- **JWT Authentication**: Stateless authentication using secure JSON Web Tokens.
+- **RBAC**: Fine-grained access control using `@Roles(UserRole.ADMIN)`.
+- **Validation**: Strict input validation using `class-validator` and global `ValidationPipe`.
+
+---
+
+## 🏥 Health Check
+
+The API includes a dedicated health check endpoint to monitor the system status and uptime. This is also used by Cloud hosting providers (like Render) to verify the service is running correctly.
+
+- **Endpoint**: `GET /api/v1/health`
+- **Live URL**: [https://backend-lms-0kw1.onrender.com/api/v1/health](https://backend-lms-0kw1.onrender.com/api/v1/health)
+
+**Response Example:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-03-31T14:55:00.000Z",
+  "uptime": 12345.67
+}
+```
+
+---
+
+## 🏗 Moving Forward: How to Use This Boilerplate
+
+This repository is a **living template**. Here is how to expand it:
+
+### 1. Creating New Modules
+Use the Nest CLI to scaffold new features in seconds:
+```bash
+npx nest g resource courses
+```
+
+### 2. Adding Entities
+Ensure your entities utilize the decorators from `typeorm`. Once created, register them in their respective module using `TypeOrmModule.forFeature([NewEntity])`.
+
+### 3. Protecting Routes
+Simply add the `@UseGuards(JwtAuthGuard, RolesGuard)` decorator to any controller or method that requires authorization.
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run unit tests
+npm run test
+
+# Run e2e tests
+npm run test:e2e
+
+# Generate coverage report
+npm run test:cov
+```
+
+---
+
+## 📄 License
+
+This project is [UNLICENSED](LICENSE).
