@@ -15,6 +15,7 @@ import { MediaModule } from './media/media.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
+import { TeamMembersModule } from './team-members/team-members.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { CollaborationModule } from './collaboration/collaboration.module';
     DashboardModule,
     AssignmentsModule,
     CollaborationModule,
+    TeamMembersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
