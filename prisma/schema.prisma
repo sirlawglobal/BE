@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model assignments {
+  id          String        @id @db.VarChar(36)
+  title       String        @db.VarChar(255)
+  description String        @db.Text
+  dueDate     DateTime      @db.DateTime(0)
+  course_id   String        @db.VarChar(255)
+  points      Int           @default(100)
+  createdAt   DateTime      @default(now()) @db.DateTime(6)
+  updatedAt   DateTime      @default(now()) @db.DateTime(6)
+  courses     courses       @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_33f833f305070d2d4e6305d8a0c")
+  submissions submissions[]
+
+  @@index([course_id], map: "FK_33f833f305070d2d4e6305d8a0c")
+}
+
+model courses {
+  id           String        @id @db.VarChar(36)
+  title        String        @db.VarChar(255)
+  description  String?       @db.Text
+  instructorId Int?
+  isPublished  Int           @default(0) @db.TinyInt
+  createdAt    DateTime      @default(now()) @db.DateTime(6)
+  updatedAt    DateTime      @default(now()) @db.DateTime(6)
+  assignments  assignments[]
+  users        users?        @relation(fields: [instructorId], references: [id], onUpdate: NoAction, map: "FK_e6714597bea722629fa7d32124a")
+  discussions  discussions[]
+  enrollments  enrollments[]
+  modules      modules[]
+
+  @@index([instructorId], map: "FK_e6714597bea722629fa7d32124a")
+}
+
+model discussions {
+  id         String    @id @db.VarChar(36)
+  title      String    @db.VarChar(255)
+  content    String    @db.Text
+  course_id  String?   @db.VarChar(255)
+  created_by Int
+  createdAt  DateTime  @default(now()) @db.DateTime(6)
+  courses    courses?  @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_86f683d676a567be37cc9c06c88")
+  users      users     @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_a8379a349e75adbfe94a9b6898f")
+  replies    replies[]
+
+  @@index([course_id], map: "FK_86f683d676a567be37cc9c06c88")
+  @@index([created_by], map: "FK_a8379a349e75adbfe94a9b6898f")
+}
+
+model enrollments {
+  id                 String   @id @db.VarChar(36)
+  userId             Int
+  courseId           String   @db.VarChar(255)
+  progressPercentage Decimal  @default(0.00) @db.Decimal(5, 2)
+  enrolledAt         DateTime @default(now()) @db.DateTime(6)
+  courses            courses  @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_60dd0ae4e21002e63a5fdefeec8")
+  users              users    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_de33d443c8ae36800c37c58c929")
+
+  @@index([courseId], map: "FK_60dd0ae4e21002e63a5fdefeec8")
+  @@index([userId], map: "FK_de33d443c8ae36800c37c58c929")
+}
+
+model lesson_progress {
+  id          String   @id @db.VarChar(36)
+  userId      Int
+  lessonId    String   @db.VarChar(255)
+  isCompleted Int      @default(1) @db.TinyInt
+  completedAt DateTime @default(now()) @db.DateTime(6)
+  lessons     lessons  @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_df13299d2740b302dd44a368df9")
+  users       users    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_eb4349e70765bb218bb4f833f68")
+
+  @@index([lessonId], map: "FK_df13299d2740b302dd44a368df9")
+  @@index([userId], map: "FK_eb4349e70765bb218bb4f833f68")
+}
+
+model lessons {
+  id              String              @id @db.VarChar(36)
+  moduleId        String              @db.VarChar(255)
+  title           String              @db.VarChar(255)
+  contentUrl      String              @db.Text
+  contentType     lessons_contentType @default(TEXT)
+  order           Int                 @default(0)
+  createdAt       DateTime            @default(now()) @db.DateTime(6)
+  updatedAt       DateTime            @default(now()) @db.DateTime(6)
+  lesson_progress lesson_progress[]
+  modules         modules             @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_16e7969589c0b789d9868782259")
+
+  @@index([moduleId], map: "FK_16e7969589c0b789d9868782259")
+}
+
+model modules {
+  id        String    @id @db.VarChar(36)
+  courseId  String    @db.VarChar(255)
+  title     String    @db.VarChar(255)
+  order     Int       @default(0)
+  createdAt DateTime  @default(now()) @db.DateTime(6)
+  updatedAt DateTime  @default(now()) @db.DateTime(6)
+  lessons   lessons[]
+  courses   courses   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_83489b37212a5a547bde8f89014")
+
+  @@index([courseId], map: "FK_83489b37212a5a547bde8f89014")
+}
+
+model otps {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(255)
+  code      String   @db.VarChar(6)
+  expiresAt DateTime @db.DateTime(0)
+  createdAt DateTime @default(now()) @db.DateTime(6)
+}
+
+model outbox {
+  id          String        @id @db.VarChar(36)
+  type        String        @db.VarChar(100)
+  payload     Json
+  status      outbox_status @default(PENDING)
+  attempts    Int           @default(0)
+  lastError   String?       @db.Text
+  createdAt   DateTime      @default(now()) @db.DateTime(6)
+  updatedAt   DateTime      @default(now()) @db.DateTime(6)
+  processedAt DateTime?     @db.DateTime(0)
+}
+
+model replies {
+  id            String      @id @db.VarChar(36)
+  content       String      @db.Text
+  discussion_id String      @db.VarChar(255)
+  user_id       Int
+  createdAt     DateTime    @default(now()) @db.DateTime(6)
+  updatedAt     DateTime    @default(now()) @db.DateTime(6)
+  users         users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_c961efa3687d100ed22cd409534")
+  discussions   discussions @relation(fields: [discussion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e659499683ae0d6b938ead13f19")
+
+  @@index([user_id], map: "FK_c961efa3687d100ed22cd409534")
+  @@index([discussion_id], map: "FK_e659499683ae0d6b938ead13f19")
+}
+
+model submissions {
+  id            String             @id @db.VarChar(36)
+  assignment_id String             @db.VarChar(255)
+  user_id       Int
+  contentUrl    String             @db.Text
+  grade         Float?             @db.Float
+  feedback      String?            @db.Text
+  status        submissions_status @default(SUBMITTED)
+  createdAt     DateTime           @default(now()) @db.DateTime(6)
+  updatedAt     DateTime           @default(now()) @db.DateTime(6)
+  assignments   assignments        @relation(fields: [assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_8723840b9b0464206640c268abc")
+  users         users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_fca12c4ddd646dea4572c6815a9")
+
+  @@index([assignment_id], map: "FK_8723840b9b0464206640c268abc")
+  @@index([user_id], map: "FK_fca12c4ddd646dea4572c6815a9")
+}
+
+model team_members {
+  id             String   @id @db.VarChar(36)
+  fullName       String   @db.VarChar(255)
+  profilePicture String?  @db.Text
+  track          String   @db.VarChar(100)
+  createdAt      DateTime @default(now()) @db.DateTime(6)
+
+  @@index([createdAt], map: "IDX_33692aeb17710f5c6c8d58ee73")
+}
+
+model users {
+  id              Int               @id @default(autoincrement())
+  firstName       String            @db.VarChar(100)
+  lastName        String            @db.VarChar(100)
+  email           String            @unique(map: "IDX_97672ac88f789774dd47f7c8be") @db.VarChar(255)
+  password        String            @db.VarChar(255)
+  role            users_role        @default(STUDENT)
+  bio             String?           @db.Text
+  avatarUrl       String?           @db.VarChar(500)
+  isActive        Int               @default(1) @db.TinyInt
+  isVerified      Int               @default(0) @db.TinyInt
+  createdAt       DateTime          @default(now()) @db.DateTime(6)
+  updatedAt       DateTime          @default(now()) @db.DateTime(6)
+  courses         courses[]
+  discussions     discussions[]
+  enrollments     enrollments[]
+  lesson_progress lesson_progress[]
+  replies         replies[]
+  submissions     submissions[]
+}
+
+enum outbox_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum lessons_contentType {
+  VIDEO
+  DOCUMENT
+  TEXT
+}
+
+enum users_role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum submissions_status {
+  SUBMITTED
+  GRADED
+}

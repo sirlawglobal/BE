@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -52,9 +53,10 @@ export class CoursesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a course by ID' })
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get a course by ID (Public with restricted content)' })
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.coursesService.findOne(id, user?.id);
   }
 
   @Patch(':id')
@@ -94,13 +96,10 @@ export class CoursesController {
   }
 
   @Get(':id/modules')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get modules for a course. Requires Auth/Enrollment' })
-  getModulesForCourse(@Param('id') id: string) {
-    // Note: Enrollment checking would be done either via a Guard or within a service call logic.
-    // For now, any authenticated user can view the syllabus/modules.
-    return this.coursesService.getModulesForCourse(id);
+  getModulesForCourse(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.coursesService.getModulesForCourse(id, user?.id);
   }
 
   @Patch('modules/:moduleId')

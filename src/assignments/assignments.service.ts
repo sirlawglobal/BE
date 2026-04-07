@@ -23,7 +23,13 @@ export class AssignmentsService {
     return this.assignmentRepository.save(assignment);
   }
 
-  async findByCourse(courseId: string): Promise<Assignment[]> {
+  async findByCourse(courseId: string, userId?: number): Promise<Assignment[]> {
+    const isAuthorized = await this.coursesService.hasAccess(courseId, userId);
+    
+    if (!isAuthorized) {
+      return [];
+    }
+    
     return this.assignmentRepository.find({
       where: { courseId },
       order: { createdAt: 'DESC' },

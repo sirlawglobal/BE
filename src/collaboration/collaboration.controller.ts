@@ -26,17 +26,17 @@ export class CollaborationController {
   @Get('discussions/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a discussion thread by ID' })
-  getDiscussion(@Param('id') id: string) {
-    return this.collaborationService.getDiscussion(id);
+  @ApiOperation({ summary: 'Get a discussion thread by ID (Restricted to enrolled)' })
+  getDiscussion(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.collaborationService.getDiscussion(id, user.sub);
   }
 
   @Get('discussions')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all discussion threads (optional course filter)' })
-  getAllDiscussions(@Query('courseId') courseId?: string) {
-    return this.collaborationService.getAllDiscussions(courseId);
+  @ApiOperation({ summary: 'Get all discussion threads (optional course filter, Restricted to enrolled)' })
+  getAllDiscussions(@Query('courseId') courseId: string, @CurrentUser() user: JwtPayload) {
+    return this.collaborationService.getAllDiscussions(courseId, user.sub);
   }
 
   @Post('replies')

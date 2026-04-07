@@ -8,6 +8,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
 @ApiTags('Assignments')
 @Controller('assignments')
@@ -25,9 +26,10 @@ export class AssignmentsController {
   }
 
   @Get('course/:courseId')
-  @ApiOperation({ summary: 'Get all assignments for a course' })
-  findByCourse(@Param('courseId') courseId: string) {
-    return this.assignmentsService.findByCourse(courseId);
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get all assignments for a course (Restricted to enrolled)' })
+  findByCourse(@Param('courseId') courseId: string, @CurrentUser() user: any) {
+    return this.assignmentsService.findByCourse(courseId, user?.id);
   }
 
   @Get(':id')

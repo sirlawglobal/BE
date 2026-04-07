@@ -28,18 +28,18 @@ export class LessonsController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Find all lessons for a module' })
+  @ApiOperation({ summary: 'Find all lessons for a module (Restricted to enrolled)' })
   @ApiQuery({ name: 'moduleId', required: true, type: String })
-  findAll(@Query('moduleId') moduleId: string) {
-    return this.lessonsService.findAllByModule(moduleId);
+  findAll(@Query('moduleId') moduleId: string, @CurrentUser() user: any) {
+    return this.lessonsService.findAllByModule(moduleId, user.id);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get lesson content by ID' })
-  findOne(@Param('id') id: string) {
-    return this.lessonsService.findOne(id);
+  @ApiOperation({ summary: 'Get lesson content by ID (Restricted to enrolled)' })
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.lessonsService.findOne(id, user.id);
   }
 
   @Patch(':id')

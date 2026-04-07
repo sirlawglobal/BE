@@ -47,7 +47,7 @@ export class CollaborationService {
     return this.discussionRepository.save(discussion);
   }
 
-  async getDiscussion(id: string): Promise<Discussion> {
+  async getDiscussion(id: string, userId: number): Promise<Discussion> {
     const discussion = await this.discussionRepository.findOne({
       where: { id },
       relations: ['user', 'replies', 'replies.user'],
@@ -60,20 +60,24 @@ export class CollaborationService {
     if (!discussion) {
       throw new NotFoundException('Discussion not found');
     }
+
+    await this.validateParticipation(discussion.courseId, userId);
+
     return discussion;
   }
 
-  async getAllDiscussions(courseId?: string): Promise<Discussion[]> {
-    const where = courseId ? { courseId } : {};
+  async getAllDiscussions(courseId: string, userId: number): Promise<Discussion[]> {
+    await this.validateParticipation(courseId, userId);
+    
     return this.discussionRepository.find({
-      where,
+      where: { courseId },
       relations: ['user'],
       order: { createdAt: 'DESC' },
     });
   }
 
   async createReply(createReplyDto: CreateReplyDto, userId: number): Promise<Reply> {
-    const discussion = await this.getDiscussion(createReplyDto.discussionId);
+    const discussion = await this.getDiscussion(createReplyDto.discussionId, userId);
     if (!discussion) {
       throw new NotFoundException('Discussion not found');
     }

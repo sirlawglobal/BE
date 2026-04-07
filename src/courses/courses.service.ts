@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { Module as CourseModule } from './entities/module.entity';
+import { Enrollment } from '../enrollments/entities/enrollment.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -14,6 +15,8 @@ export class CoursesService {
     private courseRepository: Repository<Course>,
     @InjectRepository(CourseModule)
     private moduleRepository: Repository<CourseModule>,
+    @InjectRepository(Enrollment)
+    private enrollmentRepository: Repository<Enrollment>,
   ) {}
 
   async create(createCourseDto: CreateCourseDto, instructorId: number): Promise<Course> {
@@ -43,9 +46,12 @@ export class CoursesService {
 
     return {
       data: courses,
-      total,
-      page,
-      limit,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -57,14 +63,37 @@ export class CoursesService {
     });
   }
 
-  async findOne(id: string): Promise<Course> {
+  async hasAccess(courseId: string, userId?: number): Promise<boolean> {
+    if (!userId) return false;
+    
+    const course = await this.courseRepository.findOne({ where: { id: courseId } });
+    if (!course) throw new NotFoundException('Course not found');
+    
+    if (Number(course.instructorId) === Number(userId)) return true;
+    
+    const enrollment = await this.enrollmentRepository.findOne({
+      where: { userId, courseId }
+    });
+    return !!enrollment;
+  }
+
+  async findOne(id: string, userId?: number): Promise<Course> {
     const course = await this.courseRepository.findOne({
       where: { id },
       relations: ['instructor', 'modules'],
     });
+
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
+
+    const isAuthorized = await this.hasAccess(id, userId);
+
+    // If not authorized, redact modules (full details)
+    if (!isAuthorized) {
+      course.modules = [];
+    }
+
     return course;
   }
 
@@ -106,9 +135,30 @@ export class CoursesService {
     return await this.moduleRepository.save(module);
   }
 
-  async getModulesForCourse(courseId: string): Promise<CourseModule[]> {
-    // This verifies the course exists
-    await this.findOne(courseId);
+  async getModulesForCourse(courseId: string, userId?: number): Promise<CourseModule[]> {
+    const course = await this.findOne(courseId, userId);
+    
+    // If findOne returned empty modules because of lack of auth, we should handle it here too
+    // But getModulesForCourse is a separate call usually.
+    // If not authorized, return empty or throw? 
+    // The user said 'without seeing full details'. 
+    // We'll throw Forbidden if they try to fetch modules explicitly but are not enrolled.
+    
+    let isAuthorized = false;
+    if (userId) {
+      if (Number(course.instructorId) === Number(userId)) {
+        isAuthorized = true;
+      } else {
+        const enrollment = await this.enrollmentRepository.findOne({
+          where: { userId, courseId }
+        });
+        if (enrollment) isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return []; // Return empty modules for guests/non-enrolled
+    }
     
     return await this.moduleRepository.find({
       where: { courseId },

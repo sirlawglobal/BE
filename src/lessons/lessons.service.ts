@@ -31,13 +31,19 @@ export class LessonsService {
     return await this.lessonRepository.save(lesson);
   }
 
-  async findOne(id: string): Promise<Lesson> {
+  async findOne(id: string, userId?: number): Promise<Lesson> {
     const lesson = await this.lessonRepository.findOne({
       where: { id },
       relations: ['module'], // Bring module data if needed
     });
     
     if (!lesson) throw new NotFoundException('Lesson not found');
+
+    const isAuthorized = await this.coursesService.hasAccess(lesson.module.courseId, userId);
+    if (!isAuthorized) {
+      throw new UnauthorizedException('Please enroll in the course to view this lesson');
+    }
+
     return lesson;
   }
 
@@ -64,7 +70,14 @@ export class LessonsService {
     await this.lessonRepository.remove(lesson);
   }
 
-  async findAllByModule(moduleId: string): Promise<Lesson[]> {
+  async findAllByModule(moduleId: string, userId?: number): Promise<Lesson[]> {
+    const module = await this.coursesService.findModuleById(moduleId);
+    const isAuthorized = await this.coursesService.hasAccess(module.courseId, userId);
+
+    if (!isAuthorized) {
+      return []; // Return empty lessons if not enrolled
+    }
+
     return await this.lessonRepository.find({
       where: { moduleId },
       order: { order: 'ASC' },
