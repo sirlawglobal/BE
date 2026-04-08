@@ -3,7 +3,7 @@ import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   @Get()
   getHello(): string {
@@ -12,6 +12,7 @@ export class AppController {
 
   @Get('health')
   getHealth() {
+    console.log('Health check');
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
