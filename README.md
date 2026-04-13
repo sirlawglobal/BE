@@ -10,6 +10,32 @@ The API is currently live and accessible at:
 
 ---
 
+## 🌟 Core Features
+
+- **Authentication & Security**
+  - **Secure Enrollment**: Multi-step registration with **Email OTP Verification**.
+  - **Stateless Auth**: High-performance session management using **JWT**.
+  - **RBAC**: Granular **Role-Based Access Control** (Student, Instructor, Admin).
+  - **Data Privacy**: Industry-standard **Bcrypt** password hashing.
+
+- **Course & Content Management**
+  - **Modular Learning**: Flexible structure with Courses, Modules, and Lessons.
+  - **Video Streaming**: High-speed video delivery powered by **Cloudinary**.
+  - **Stateless Media**: Direct-to-cloud streaming to maintain zero-disk footprint.
+
+- **Student Engagement**
+  - **Interactive Discussions**: Course-level discussion boards for collaborative learning.
+  - **Assignments & Submissions**: Point-based tasks with document upload support.
+  - **Progress Tracking**: Real-time tracking of lesson completion and course status.
+
+- **Instructor Tools**
+  - **Grading Suite**: Dedicated workflow for reviewing and grading student assignments.
+  - **Dashboard Analytics**: Role-specific statistics for student performance and course engagement.
+
+- **System Reliability**
+  - **Transactional Outbox**: Guaranteed notification delivery even during database failures.
+  - **Background Workers**: Automated retry logic for critical email notifications.
+
 ---
 
 ## 🛠 Tech Stack
@@ -193,6 +219,32 @@ For dedicated API testing, import the collection found in:
 | Method | Endpoint | Description | Auth Required | Roles |
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/` | Get role-based dashboard statistics | Yes | Any |
+
+#### Assignments & Grading (`/api/v1/assignments`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/` | Create a new assignment | Yes | Instructor, Admin |
+| GET | `/course/:id` | Get all assignments for a course | Yes | Any |
+| GET | `/:id` | Get specific assignment details | Yes | Any |
+| PATCH | `/:id` | Update assignment details | Yes | Instructor, Admin |
+| DELETE | `/:id` | Remove an assignment | Yes | Instructor, Admin |
+| POST | `/submit` | Submit work for an assignment | Yes | Student |
+| GET | `/submissions/:assignmentId`| List all submissions for an assignment| Yes | Instructor, Admin |
+| PATCH | `/grade/:submissionId` | Grade and provide feedback | Yes | Instructor, Admin |
+
+#### Collaboration & Discussions (`/api/v1/collaboration`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/discussions` | Start a new discussion | Yes | Any |
+| GET | `/discussions/:courseId` | List discussions for a course | Yes | Any |
+| GET | `/discussion/:id` | Get discussion and all replies | Yes | Any |
+| POST | `/replies` | Post a reply to a discussion | Yes | Any |
+
+#### Team Members (`/api/v1/team-members`)
+| Method | Endpoint | Description | Auth Required | Roles |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/` | List all platform team members | No | Any |
+| POST | `/` | Add a new team member (with profile pic) | No | Any |
 
 ---
 
