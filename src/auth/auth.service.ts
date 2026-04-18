@@ -4,10 +4,11 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
-import { Otp } from './entities/otp.entity';
+import { Otp, OtpType } from './entities/otp.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto, ResendOtpDto } from './dto/otp.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { UsersService } from '../users/users.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -47,7 +48,7 @@ export class AuthService {
       await manager.save(user);
 
       // Generate and save OTP & Outbox event atomically
-      await this.generateAndSendOtp(user.email, manager);
+      await this.generateAndSendOtp(user.email, OtpType.EMAIL_VERIFY, manager);
     });
 
     return {
@@ -60,7 +61,7 @@ export class AuthService {
     const { email, code } = dto;
 
     const otp = await this.otpRepo.findOne({
-      where: { email, code },
+      where: { email, code, type: OtpType.EMAIL_VERIFY },
       order: { createdAt: 'DESC' },
     });
 
@@ -81,7 +82,7 @@ export class AuthService {
     await this.userRepo.save(user);
 
     // Delete all OTPs for this email after successful verification
-    await this.otpRepo.delete({ email });
+    await this.otpRepo.delete({ email, type: OtpType.EMAIL_VERIFY });
 
     const payload: JwtPayload = { id: user.id, sub: user.id, email: user.email, role: user.role };
 
@@ -110,7 +111,7 @@ export class AuthService {
     }
 
     await this.dataSource.transaction(async (manager: EntityManager) => {
-      await this.generateAndSendOtp(email, manager);
+      await this.generateAndSendOtp(email, OtpType.EMAIL_VERIFY, manager);
     });
 
     return {
@@ -118,23 +119,67 @@ export class AuthService {
     };
   }
 
-  private async generateAndSendOtp(email: string, manager?: EntityManager) {
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const { email } = dto;
+    const user = await this.usersService.findByEmail(email);
+
+    // Always return the same response to prevent email enumeration
+    if (!user) {
+      return { message: 'If an account with that email exists, a reset code has been sent.' };
+    }
+
+    await this.dataSource.transaction(async (manager: EntityManager) => {
+      // Invalidate any existing password reset OTPs
+      await manager.delete(Otp, { email, type: OtpType.PASSWORD_RESET });
+      await this.generateAndSendOtp(email, OtpType.PASSWORD_RESET, manager);
+    });
+
+    return { message: 'If an account with that email exists, a reset code has been sent.' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const { email, code, newPassword } = dto;
+
+    const otp = await this.otpRepo.findOne({
+      where: { email, code, type: OtpType.PASSWORD_RESET },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!otp) {
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+
+    if (new Date() > otp.expiresAt) {
+      throw new BadRequestException('Reset code has expired. Please request a new one.');
+    }
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await this.userRepo.save(user);
+
+    // Invalidate the used OTP
+    await this.otpRepo.delete({ email, type: OtpType.PASSWORD_RESET });
+
+    return { message: 'Password has been reset successfully. You can now log in.' };
+  }
+
+  private async generateAndSendOtp(email: string, type: OtpType, manager?: EntityManager) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
 
     const otpRepo = manager ? manager.getRepository(Otp) : this.otpRepo;
 
-    // Save OTP to DB
-    const otp = otpRepo.create({
-      email,
-      code,
-      expiresAt,
-    });
+    const otp = otpRepo.create({ email, code, type, expiresAt });
     await otpRepo.save(otp);
 
-    // Add task to Outbox inside the same transaction
-    await this.outboxService.add('OTP_EMAIL', { email, code }, manager);
+    const outboxType = type === OtpType.PASSWORD_RESET ? 'PASSWORD_RESET_EMAIL' : 'OTP_EMAIL';
+    await this.outboxService.add(outboxType, { email, code }, manager);
   }
 
   async login(dto: LoginDto) {

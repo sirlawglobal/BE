@@ -62,4 +62,21 @@ export class NotificationsService {
     `;
     return this.sendEmail(email, subject, html);
   }
+
+  async sendPasswordResetEmail(email: string, code: string) {
+    const subject = 'Reset Your Password - TrueMinds TalentFlow';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+        <h2 style="color: #333; text-align: center;">Password Reset Request</h2>
+        <p>We received a request to reset your password for your TrueMinds TalentFlow account. Use the code below to complete your password reset:</p>
+        <div style="font-size: 32px; font-weight: bold; text-align: center; margin: 30px 0; color: #e05c2a; letter-spacing: 5px;">
+          ${code}
+        </div>
+        <p>This code is valid for <strong>10 minutes</strong>. If you did not request a password reset, please ignore this email — your account is safe.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #777; text-align: center;">&copy; 2026 TrueMinds TalentFlow LMS. All rights reserved.</p>
+      </div>
+    `;
+    return this.sendEmail(email, subject, html);
+  }
 }
