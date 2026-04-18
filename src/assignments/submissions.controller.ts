@@ -22,6 +22,15 @@ export class SubmissionsController {
     return this.submissionsService.create(createSubmissionDto, user.id);
   }
 
+  @Get('instructor/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all submissions for an instructor\'s courses' })
+  findInstructorAll(@CurrentUser() user: any) {
+    return this.submissionsService.findAllForInstructor(user.id);
+  }
+
   @Get('assignment/:assignmentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)

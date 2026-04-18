@@ -61,6 +61,17 @@ export class SubmissionsService {
     });
   }
 
+  async findAllForInstructor(instructorId: number): Promise<Submission[]> {
+    return this.submissionRepository
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.user', 'user')
+      .leftJoinAndSelect('submission.assignment', 'assignment')
+      .leftJoinAndSelect('assignment.course', 'course')
+      .where('course.instructorId = :instructorId', { instructorId })
+      .orderBy('submission.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findUserSubmission(assignmentId: string, userId: number): Promise<Submission | null> {
     return this.submissionRepository.findOne({
       where: { assignmentId, userId },
