@@ -20,7 +20,12 @@ export class EnrollmentsService {
   ) {}
 
   async enrollUser(userId: number, courseId: string): Promise<Enrollment> {
-    await this.coursesService.findOne(courseId);
+    const course = await this.coursesService.findOne(courseId);
+
+    // Prevent instructors from enrolling in their own courses
+    if (Number(course.instructorId) === Number(userId)) {
+      throw new BadRequestException('Instructors cannot enroll in their own courses');
+    }
 
     const existing = await this.enrollmentRepository.findOne({
       where: { userId, courseId }
